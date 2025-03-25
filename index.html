@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <title>Ising</title>
+    <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/css/bootstrap.min.css">
+  <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.12.0/jquery.min.js"></script>
+  <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/js/bootstrap.min.js"></script>
+  <script type="text/x-mathjax-config">
+    MathJax.Hub.Config({tex2jax: {inlineMath: [['$','$'], ['\\(','\\)']]}});
+  </script>
+  <script type="text/javascript"
+    src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML">
+  </script>
+  <link href='https://fonts.googleapis.com/css?family=Oswald:700' rel='stylesheet' type='text/css'>
+
+</head>
+<body>    
+    <nav class="navbar navbar-inverse navbar-static-top" role="navigation">
+        <div class="container">
+            <div class="navbar-header">
+            <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#bs-example-navbar-collapse-1">
+                    <span class="sr-only">Toggle navigation</span>
+                    <span class="icon-bar"></span>
+                    <span class="icon-bar"></span>
+                    <span class="icon-bar"></span>
+                </button>
+            </div>
+    
+            <!-- Collect the nav links, forms, and other content for toggling -->
+            <div class="collapse navbar-collapse" id="bs-example-navbar-collapse-1">
+                <ul class="nav navbar-nav">
+                    <li><a href="https://blue-ringed-octopus.github.io/">Home</a></li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+    
+    <div style="text-align: center;">
+        <h1><b>Ising Model</b></h1>
+    </div>
+    <hr>
+    <div class="container">
+        Author: <br>
+        Benjamin Wong 
+    </div>
+    <hr>
+
+    <div class="container">
+        <div class="col-md-2">
+            <p><h3><b>Contents</b></h3></p><br>
+            <p>
+                <a href="#introduction">Introduction</a><br>
+                <a href="#preliminaries">Mathematical Formulation</a><br>
+                <a href="#equilibrium">Equilibrium Behavior</a><br>
+
+                <a href="#reference">Reference</a><br>
+
+            </p>
+
+        </div>
+        <div class="col-md-8">
+            <h2 id="introduction">Introduction</h2>
+            <hr>
+        
+            <p> Ising model was developed by <a href="https://en.wikipedia.org/wiki/Wilhelm_Lenz" target=”_blank”>Wilhelm Lenz</a> and <a href="https://en.wikipedia.org/wiki/Ernst_Ising" target=”_blank”>Ernst Ising</a>
+            as a simplified model to describe ferromagnetism in the perspective of statistical mechanics. It is one of the simplest models that experience phase transition. In short, it models magnetism as a process
+            of electrons aligning their magnetic field with their immediate neighbors. This has similarity with flocking model and consensus problem in multi-robot system in that global properties are derived only from 
+            local interactions between the agents.
+            </p>
+            
+            <p> In this project, we will first introduce the mathematical foundation of the Ising model, then analyze the at equilibrium behavior of the 2D lattice Ising model, finally, we will show the simulation of 
+                2D lattice Ising model using the Metropolis-Hasting algorithm.
+            </p>
+            <!------------------------------------------------------------------------------------>
+            <h2 id="preliminaries"> Mathematical Formulation  </h2>
+            <hr>
+            <h3 > Electron State  </h3>
+            <p> 
+                We are interested in the state of each electron called spin, denoted \(x\). The spin can take on two values: 1) up  (\(1\)), and 2) down (\(-1\))
+                <p> <center> $$ x = \begin{cases} 1 & \text{(up)}\\ -1  & \text{(down)}\end{cases}$$</center> </p>
+                <p> <center> <img class="img-responsive" src="resources/electron_spin.png" alt=""><br> </center>  </p>
+            </p>
+            <h3 > Electron Sea  </h3>
+            <p> Consider a sea of \(N\) immobile electrons (such as in a block of iron), each electron \(n\) has local interaction \(J_{n,m}\) with every neighboring electron \(m\). Additionally, each electron \(n\)
+                experience an external electric field \(h_n\). This electron sea can be represented as a graph as follow:
+            </p>
+            <p> <center> <img class="img-responsive" src="resources/electron_sea.png" alt=""><br> </center>   </p>
+            <h3 > Alignment Energy  </h3>
+            <p> 
+                The local interaction encodes the energy of misalignment between the pair of electrons, if the electrons are aligned (same spin), the energy is small; if the electrons are misaligned, the energy 
+                is high. In the Ising model, this is done by multiplying the spin of the pair
+            </p>
+            <p> <center>$$ E(x_n, x_m) = -J_{n,m}x_nx_m $$</center> </p>
+            <p> 
+                If the electrons are aligned, the energy is \(-J_{n,m}\); if the electrons are misaligned, the energy is \(J_{n,m}\). Likewise, the energy associated with the external field is the alignment of the 
+                electron with its local external field:                 
+            </p>
+            <p> <center> $$E(x_n) = h_{n}x_n$$</center> </p>
+
+
+            <p> 
+                The state of the entire system can be defined as a vector of the spin of every electron in the electron sea,
+            </p>
+            <p> <center>$$ X_i \triangleq (x_1, x_2, \cdots , x_n, \cdots, x_N) $$</center> </p>
+
+            <p> 
+                The energy of any given system state is the sum of all alignments energies
+            </p>
+            <p> <center>$$ E(X_i) = -\sum_{(m,n)}J_{n,m}x_nx_m + \sum_{n} h_nx_n $$</center> </p>
+
+            <h3 > State Probability </h3>
+            <p> 
+                From statistical mechanics, we know that the probability of a system existing in a particular state \(X_i\) follows the Boltzmann distribution 
+            </p>
+            <p> <center> $$\mathbb{P}(X_i) = \frac{1}{Z}\exp(-\beta E(X_i))$$</center> </p>
+            <p> 
+                where \(\beta\) is the inverse temperature of the system, and \(Z\) is the normalizing constant, aka the partition function,
+            </p>
+            <p> <center> $$Z\triangleq \sum_i \exp(-\beta E(X_i))$$</center> </p>
+            
+            <h3 > Magnetization </h3>
+            <p> Finally, the macro quantity we are interested about the system is the magnetization \(M\), which is the average spin of the entire electron sea </p>
+            <p> <center>$$ M \triangleq \frac{1}{N}\sum_n x_n  $$</center> </p>
+            <p> If all the electrons has a up-spin \(x=1\), the magnetization is \(M=1\). If all the electrons has a down-spin, the magnetization is \(M=-1\). If half of the electrons have a down-spin and other 
+                half have a up-spin, the magnetization is \(M=0\). The goal now is to find the expected magnetization of the electron sea as a function of the inverse temperature \(\beta\).
+
+            </p>
+
+            <!------------------------------------------------------------------------------------>
+            <h2 id="equilibrium">Equilibrium Behavior</h2>
+            <hr>
+            <p> 
+                In this section, we want to study the magnetization at equilibrium for any given inverse temperature \(\beta\) for a electron sea in a 2D square lattice. In other word, all electrons have 4 neighbors: 
+                up, down, left, right. And the distance to all the neighbors are equal. Additionally, for simplicity, the interaction strength \(J_{m,n}\) is \(1\) for all neighboring pairs. 
+            </p>
+
+            <h3 > No interaction model </h3>
+            <p> 
+                 Turns out, it is useful to first study the Ising model with no interaction (\(J_{m,n} = 0\)) between the electrons, which can be used for simplifying the full Ising model.
+            </p>
+            <p> 
+                Assume a uniform external field  \(h_n = h\)  for every electron site. The energy of the no interaction model is 
+            </p>
+            <p> <center>$$ E(X_i) = h\sum_n x_n  $$</center> </p>
+            <p> 
+                We will rewrite this in terms of the total numbers of up-spin \(k\), correspondingly, the total number of down-spin is \((N-k)\)
+            </p>
+            <p> <center>$$ E(X_i) = h\left(\sum_{\text{up}}1 + \sum_{\text{down}}(-1)\right) =  h(k - (N-k))  $$</center> </p>
+            <p> 
+                The partition function is 
+            </p>
+            <p> <center>$$ Z=  \sum_{k} \textrm{C}^N_k e^{-\beta h(k - (N-k))} = \sum_{k}\textrm{C}^N_k e^{-\beta hk}e^{\beta h(N-k)} $$</center> </p>
+            <p> 
+                where  \(\textrm{C}^N_k\) is the choose function since there are \(N\) choose \(k\) amount of states that has the same \(k\) number of up-spin. 
+            </p>
+            <p> 
+                Substitute \(a = e^{-\beta h}\) and  \(b = e^{\beta h}\)
+            </p>
+            <p> <center>$$  Z = \sum_{k}\textrm{C}^N_k a^kb^{(N-k)} $$</center> </p>
+            <p> this is the binomial expansion </p>
+            <p> <center>$$  (a+b)^N = \sum_{k}\textrm{C}^N_k a^kb^{(N-k)} $$</center> </p>
+            <p> Substitute \(a\) and \(b\) back, we get  </p>
+            <p> <center>$$  Z = (a+b)^N = ( e^{-\beta h}+e^{\beta h})^N = (2\cosh(\beta h))^N = 2^N(\cosh(\beta h))^N$$</center> </p>
+            <p> 
+                The average energy of the system can be derived from the partition function
+            </p>
+            <p> <center>$$  \begin{aligned} E &= -\frac{\partial}{\partial \beta}\ln(Z)  \\ 
+                                              &= -\frac{\partial}{\partial \beta} (N\ln 2 + N\ln (\cosh(\beta h)) )\\
+                                              &= -Nh\frac{\sinh\beta h}{\cosh \beta h} \\
+                                              &= -Nh\tanh(\beta h)
+                            \end{aligned}
+                $$</center> 
+            </p>
+            <p> The magnetization is related to the energy by</p>
+            <p> <center>$$  E = NMh $$</center> </p>
+            <p> Therefore</p>
+            <p> <center>$$  M = -\tanh(\beta h) $$</center> </p>
+            <p> when \(\beta\) is \(0\) (infinite temperature), the magnetization is \(0\); the magnetization approaches  \(-1\) as \(\beta\) goes up</p>
+
+
+            <!------------------------------------------------------------------------------------>
+            <h2 id="reference">Reference</h2>
+            <hr>
+
+
+        </div>
+    </div>
+</body>
+</html>
