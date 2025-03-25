@@ -52,7 +52,7 @@ def dE(sys, electron, h):
  
 beta = 0.01
 external = 0.1
-radius = 1
+radius = 2
 # stencil = np.array([[-1,0], [1,0], [0,-1], [0,1]])
 stencil = np.array([[i,j] for i in np.arange(-radius, radius+1, 1) for j in np.arange(-radius, radius+1, 1)])
 w, h = 100, 100
@@ -75,9 +75,10 @@ for i in range(h):
         
 sys=Ising(nodes, edges, beta,1)
 T = 500
+beta_c = 1/(stencil.shape[0]-1)
 flip_num = 50000
 states=np.zeros((T, h,w))
-beta = np.linspace(0,0.5,T)
+beta = np.linspace(0,beta_c*2,T)
 Ms = []
 for t in range(T):
     M = []
@@ -110,25 +111,31 @@ for t in range(T):
 cv2.destroyAllWindows()
 #%%
 plt.plot(beta, Ms)
-
-plt.plot(beta, ((1-(np.sinh(2*beta))**(-4))**(1/8)))
+plt.vlines(beta_c, min(Ms),max(Ms), linestyles='dashed')
+# plt.plot(beta, ((1-(np.sinh(2*beta))**(-4))**(1/8)))
 
 #%%
-
-fig = plt.figure()    
-ax = plt.gca()
-ax.set_aspect('equal', adjustable='box')
-plt.axis([0, w, 0, h])
-plt.axis('square')
-plt.ylim(0, h)
-plt.xlim(0 , w)
+plt.figure()
+fig, ax = plt.subplots(1,2)
 def animate(i):
-    ax.clear()
-    ax.set_xlim(0, w)
-    ax.set_ylim(0, h)
-    grid = ax.imshow(states[i], cmap="Greys_r")
-    ax.set_title(r'$\beta = $'+str(round(beta[i],2)))
-    return [grid]
+    ax[0].clear()
+    ax[1].clear()
+    ax[0].set_aspect('equal', adjustable='box')
+    ax[0].axis('square')
+    ax[0].set_ylim(0, h)
+    ax[0].set_xlim(0, w)
+    ax[1].set_ylim(-0.05, 1.05)
+    ax[1].set_xlim(0, beta[-1])
+    ax[1].vlines(beta_c, min(Ms),max(Ms), linestyles='dashed')
+    im = ((states[i]+2)//2*255).astype(np.uint8)
+    im = cv2.cvtColor(im, cv2.COLOR_GRAY2RGB)
+    grid = ax[0].imshow(im)
+    ax[0].set_title(r'$\beta = $'+str(round(beta[i],2)))
+    ax[1].set_title("Magnetization")
+    dots = ax[1].plot(beta[:i], Ms[:i], ".", color="red", markersize=5)
+
+    return [grid]+dots
         
 ani = FuncAnimation(fig, animate, interval=40, blit=True, repeat=True, frames=T)    
 ani.save("ising.mp4", dpi=500,  writer='ffmpeg')   
+ani.save("ising.gif", dpi=500,  writer=PillowWriter(fps=24))   
