@@ -53,7 +53,9 @@
             <p>
                 <a href="#introduction">Introduction</a><br>
                 <a href="#preliminaries">Mathematical Formulation</a><br>
-                <a href="#equilibrium">Equilibrium Behavior</a><br>
+                <a href="#m-h">Metropolis-Hasting Simulation</a><br>
+
+                <a href="#equilibrium">Phase Transition</a><br>
 
                 <a href="#reference">Reference</a><br>
 
@@ -124,16 +126,93 @@
             <p> Finally, the macro quantity we are interested about the system is the magnetization \(M\), which is the average spin of the entire electron sea </p>
             <p> <center>$$ M \triangleq \frac{1}{N}\sum_n x_n  $$</center> </p>
             <p> If all the electrons has a up-spin \(x=1\), the magnetization is \(M=1\). If all the electrons has a down-spin, the magnetization is \(M=-1\). If half of the electrons have a down-spin and other 
-                half have a up-spin, the magnetization is \(M=0\). The goal now is to find the expected magnetization of the electron sea as a function of the inverse temperature \(\beta\).
+                half have a up-spin, the magnetization is \(M=0\). 
 
             </p>
-
             <!------------------------------------------------------------------------------------>
-            <h2 id="equilibrium">Equilibrium Behavior</h2>
+            <h2 id="m-h">Metropolis-Hasting Simulation</h2>
+            <hr>
+            <p> With the probability of the system being in each state defined, we can simulate the system using the Metropolis-Hasting (M-H) algorithm, which is in the class of algorithm called Markov chain monte carlo. 
+                The idea is to randomly perturb the state of the system and decide whether to keep the perturbation based on the probability of the state. By properly selecting this acceptance rate of perturbation, the 
+            M-H algorithm can ensure the frequency of the system being in each state during the simulation to be equal to the true probability defined by the Boltzmann distribution.  </p>
+
+            <h3 > Detailed Balance </h3>
+            <p> The M-H algorithm relies on a condition called <i>detailed balance</i>. In short, it is a condition where the in-flux and out-flux between two states are the same for every pair of states   </p>
+            <p> <center>$$ \mathbb{P}(X_i)\mathbb{P}(X_j | X_i) = \mathbb{P}(X_j)\mathbb{P}(X_i | X_j)  $$</center> </p>
+            <p> The goal is to design the transition probability \(\mathbb{P}(X_j | X_i)\) such that the detailed balance condition hold for every pair of states for \(\mathbb{P}(X_i) = \frac{1}{Z}e^{-\beta E(X_i)}\).
+            </p>
+            
+            <h3 > Acceptance Rate </h3>
+            <p> The M-H algorithm is separates the transition probability into two steps: 1) propose \(g(X_j|X_i)\) 2) accept \(A(X_j|X_i)\). The total probability of transition is the product of the two.</p>
+            <p> <center>$$ \mathbb{P}(X_j | X_i) = g(X_j|X_i)A(X_j|X_i)  $$</center> </p>
+
+            <p> The detailed balance can be rewritten as </p>
+            <p> <center>$$ 
+                \begin{aligned}
+                    \mathbb{P}(X_i)g(X_j|X_i)A(X_j|X_i) &= \mathbb{P}(X_j)g(X_i|X_j)A(X_i|X_j) \\
+                    \frac{A(X_j|X_i)}{A(X_i|X_j)} &= \frac{\mathbb{P}(X_j)g(X_i|X_j)}{\mathbb{P}(X_i)g(X_j|X_i)}
+                \end{aligned}  $$
+            </center> </p>
+
+            <h3 > Single Spin Flip Dynamic </h3>
+            <p> The particular propose transition we use here is the single-spin-flip model, where we uniformly randomly select one of the electron, and flip its spin, then the proposed transition 
+                probability is just the chance of selecting a particular electron
+            </p>
+            <p> <center>$$  g(X_j|X_i) = g(X_i|X_j) = \frac{1}{N} $$</center> </p>
+            <p> This simplifies the acceptance ratio to 
+            </p>
+            <p> <center>$$ 
+                \begin{aligned}
+                    \frac{A(X_j|X_i)}{A(X_i|X_j)} & = \frac{\mathbb{P}(X_j)}{\mathbb{P}(X_i)} \\
+                                                  & = \frac{\frac{1}{Z}e^{-\beta E(X_j)}}{\frac{1}{Z}e^{-\beta E(X_i)}}\\
+                                                  & = e^{-\beta (E(X_j) - E(X_i))} \\
+                                                  & =e^{-\beta \Delta E}
+                \end{aligned}  $$
+            </center> </p>
+            <p> Since this is a single flip, the change of energy can be evaluated only around the neighborhood of the selected electron. </p>
+
+            <p> There are still two variables, \(A(X_j|X_i), A(X_i|X_j)\) with one equation. The standard method is to set \(A(X_i|X_j)\) to \(1\) if \(\Delta E\) is positive; 
+                and \(A(X_j|X_i)\) to \(1\) if \(\Delta E\) is negative. In other word, always transition if it leads to a decrease in energy, and sample from \(e^{-\beta \Delta E}\) if the transition leads to 
+            an increase of energy. Mathematically,  </p>
+            <p> <center>$$ \begin{aligned} A(X_j|X_i) &= \begin{cases} 
+                                            1 & \text{if } \Delta{E} \leq 0   \\
+                                            e^{-\beta \Delta E}  & \text{if } \Delta{E} > 0 \end{cases}\\
+                                            &= \min\left\{1, e^{-\beta \Delta E}\right\}  \end{aligned}$$</center> </p>
+            <p> <center> <img class="img-responsive" src="resources/m_h.png" alt=""><br> </center>   </p>
+
+            <p> With this we have the full algorithm for simulating the Ising model </p>
+            <h3 >Full Algorithm</h3>
+            <ol>
+                <li>Uniformly randomly select electron 
+                    <p> <center>$$  n \sim \text{uniform}(\{1,2,\cdots, N\}) $$</center> </p>
+                </li>
+                <li>Calculate energy different after flip
+                    <p> <center>$$  \Delta E = -2Jx_n\sum_{m\in \mathcal{N}(n)} x_m $$</center> </p>
+                </li>
+                <li>Calculate acceptance rate
+                    <p> <center>$$  A = \min\left\{1, e^{-\beta \Delta E}\right\} $$</center> </p>
+                </li>
+                <li>Sample acceptance rate, flip the spin if \(a\) is smaller then \(A\), reject the flip otherwise
+                    <p> <center>$$  a \sim \text{uniform}([0, 1]) $$</center> </p>
+                    <p> <center>$$  X = \begin{cases}  X_j & \text{if } a\leq A \\X_i& \text{if } a> A \end{cases}$$</center> </p>
+                </li>
+              </ol>
+
+            <h3 >Simulation</h3>
+            <p> We will simulate the system by using \(J=1\) on a \(100\times 100\) grid. The neighborhood of each electron is a \(5\times 5\) square centered at 
+                the electron. Additionally, we slowly increase \(\beta\) to observe the magnetization of the system. </p>
+            <p> <center> <img class="img-responsive" src="resources/ising.gif" alt=""><br> </center>   </p>
+
+            <p> We can see a sudden change of magnetization from \(0\) to \(1\) at around \(\beta = 0.04\), this is called a phase change, where a system shows a sudden change of behavior after some 
+                critical point. Most common example being boiling and freezing of water. In this case, the magnetization of metal as it is been cooled down. Next section, we will derive the critical temperature 
+                for the magnetization of the Ising model.
+            </p>
+            <!------------------------------------------------------------------------------------>
+            <h2 id="equilibrium">Phase Transition</h2>
             <hr>
             <p> 
                 In this section, we want to study the magnetization at equilibrium for any given inverse temperature \(\beta\) for a electron sea in a 2D square lattice. In other word, all electrons have 4 neighbors: 
-                up, down, left, right. And the distance to all the neighbors are equal. Additionally, for simplicity, the interaction strength \(J_{m,n}\) is \(1\) for all neighboring pairs. 
+                up, down, left, right. And the distance to all the neighbors are equal. 
             </p>
 
             <h3 > No interaction model </h3>
@@ -179,6 +258,38 @@
             <p> <center>$$  M = -\tanh(\beta h) $$</center> </p>
             <p> when \(\beta\) is \(0\) (infinite temperature), the magnetization is \(0\); the magnetization approaches  \(-1\) as \(\beta\) goes up</p>
 
+            <h3 > 2D-Lattice Model</h3>
+            <p> Now, we introduce the local interaction \(J_{m,n}\) back and remove the external field \(h\) instead. Assume  
+                all the interactions have the same strength \(J_{m,n} = J\). The energy equation is then</p>
+            <p> <center>$$  E = -J \sum_{(m,n)} x_nx_m  $$</center> </p>
+
+            <p> Focus on the local energy associated with the spin of a single electron with its neighborhood \(\mathcal{N}\) </p>
+            <p> <center>$$  E_n = -J x_n\sum_{m \in \mathcal{N}} x_m  $$</center> </p>
+            <p> the average of the neighborhood's state is approximately equal to the magnetization at equilibrium, \(M\), this is called the mean field approximation </p>
+            <p> <center>$$  E_n = -J x_n\sum_{m \in \mathcal{N}} x_m \approx -J x_n |\mathcal{N}| M  $$</center> </p>
+            <p> where \(|\mathcal{N}\) is the number of neighbors. The bigger the neighborhood size is, the more accurate the approximation gets. Since \(M\) and \( |\mathcal{N}|\) are 
+                constants, we can treat them as the external field for \(x_n\)
+            </p>
+            <p> <center>$$  E_n \approx (-J  |\mathcal{N}| M) x_n.  $$</center> </p>
+            <p> From the no-interaction model, we know the expected spin, which is the magnetization, from only an external field is  </p>
+            <p> <center>$$  \mathbb{E}(x_n) = \tanh(\beta J  |\mathcal{N}| M) $$</center> </p>
+            <p> By symmetry, any electron is the same as electron \(n\), then we can conclude that the expected magnetization of electron \(n\) is just the global magnetization.</p>
+            <p> <center>$$  M = \tanh(\beta J |\mathcal{N}| M) $$</center> </p>
+
+            <p> To find the solution of \(M\), we can plot the left hand side and right hand side and find the intersection </p>
+            <p> <center> <img class="img-responsive" src="resources/beta0p5.png" alt=""><br> </center>   </p>
+            <p> With \(\beta J |\mathcal{N}| = 0.5\), the only solution for \(M\) is \(0\). Observe what happen when we start increasing \(\beta\)</p>
+            <p> <center> <img class="img-responsive" src="resources/beta_plot.gif" alt=""><br> </center>   </p>
+            <p> When \(\beta\) start increasing, the \(\tanh\) function gets steeper and steeper. At some point, it gets so steep that it crosses the \(y=M\) line, and three solutions exist. One close to \(-1\), 
+                one close to \(1\) and one that is \(0\). That is, the system can be all electrons having a down-spin; all electrons having a up-spin; or exactly 50/50 up and down. The 50/50 solution is unstable
+            because if one electron flip the spin due to random noise, the system will tip toward the spin direction that is the majority.</p>
+            <p> <center> <img class="img-responsive" src="resources/beta2.png" alt=""><br> </center>   </p>
+            <p> This cross-over point happens when \(\tanh\) is tangent to \(y=M\) at \(0\)  </p>
+            <p> <center>$$ \left.\left(\frac{\partial}{\partial M} \tanh(\beta J  |\mathcal{N}| M)\right) \right|_{M=0} = \beta J  |\mathcal{N}|   $$</center> </p>
+            <p> Set the slope at \(M=0\) to be equal to the slope of \(y=M\), which is \(1\) to get the critical temperature \(\beta_\text{c}\) </p>
+            <p> <center>$$ \begin{aligned} \beta_\text{c} J  |\mathcal{N}| & = 1  \end{aligned} \\
+                            \beta_\text{c} =\frac{1}{J  |\mathcal{N}| }
+                $$</center> </p>
 
             <!------------------------------------------------------------------------------------>
             <h2 id="reference">Reference</h2>

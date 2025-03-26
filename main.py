@@ -100,8 +100,8 @@ for t in range(T):
     im = (state+2)//2*255
     states[t,:,:] = sys.get_state().reshape(h,w)
     im = cv2.resize(im.astype(np.uint8), (1000,1000), interpolation=0)
-    cv2.imshow("ising", im)
-    cv2.waitKey(3)
+    # cv2.imshow("ising", im)
+    # cv2.waitKey(3)
     
 # for t in range(T):
 #     im = states[t,:,:]
